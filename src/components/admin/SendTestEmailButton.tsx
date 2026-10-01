@@ -10,7 +10,15 @@ export function SendTestEmailButton({ jobId }: { jobId: string }) {
     setBusy(true);
     const { data, error } = await supabase.functions.invoke("send-test-email", { body: { jobId } });
     setBusy(false);
-    if (error || !data?.ok) toast.error(data?.error ?? "Failed to send test email");
+    if (error || !data?.ok) {
+      let msg = data?.error as string | undefined;
+      try {
+        msg ??= (await (error as { context?: Response })?.context?.json())?.error;
+      } catch {
+        /* non-JSON error body */
+      }
+      toast.error(msg ?? "Failed to send test email");
+    }
     else toast.success(`Test email sent to ${data.sentTo}`);
   };
   return (

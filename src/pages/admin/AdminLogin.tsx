@@ -7,6 +7,16 @@ import { checkIsAdmin, markAdminLogin, useAdminSession } from "@/hooks/useAdminS
 
 const MAX_ATTEMPTS = 5;
 const LOCK_SECONDS = 60;
+const LOCK_KEY = "admin_login_lock";
+
+// UX-only throttle persisted across reloads; real limits are enforced by Supabase Auth (see supabase/config.toml)
+const remainingLock = () => {
+  try {
+    return Math.max(0, Math.ceil((Number(localStorage.getItem(LOCK_KEY)) - Date.now()) / 1000));
+  } catch {
+    return 0;
+  }
+};
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -16,7 +26,7 @@ export default function AdminLogin() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const [lockedFor, setLockedFor] = useState(0);
+  const [lockedFor, setLockedFor] = useState(remainingLock);
 
   useEffect(() => {
     if (lockedFor <= 0) return;
@@ -33,6 +43,11 @@ export default function AdminLogin() {
     if (n >= MAX_ATTEMPTS) {
       setAttempts(0);
       setLockedFor(LOCK_SECONDS);
+      try {
+        localStorage.setItem(LOCK_KEY, String(Date.now() + LOCK_SECONDS * 1000));
+      } catch {
+        /* ignore */
+      }
     }
   };
 
