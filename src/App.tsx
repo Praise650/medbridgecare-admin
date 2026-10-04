@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 const AdminGuard = lazy(() => import("@/components/admin/AdminGuard"));
 const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminApplications = lazy(() => import("@/pages/admin/AdminApplications"));
 const AdminJobEditor = lazy(() => import("@/pages/admin/AdminJobEditor"));
 
 const queryClient = new QueryClient();
@@ -19,6 +20,7 @@ const router = createBrowserRouter([
     element: <AdminGuard />,
     children: [
       { index: true, element: <AdminDashboard /> },
+      { path: "applications", element: <AdminApplications /> },
       { path: "jobs/new", element: <AdminJobEditor /> },
       { path: "jobs/:id/edit", element: <AdminJobEditor /> },
     ],

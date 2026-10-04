@@ -67,7 +67,9 @@ export function JobsTable({ jobs }: { jobs: JobOverview[] }) {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  {j.application_count}
+                  <Link to={`/admin/applications?job=${j.id}`} className="underline-offset-2 hover:underline">
+                    {j.application_count}
+                  </Link>
                   {j.failed_count > 0 && <span className="ml-2 text-destructive">({j.failed_count} failed)</span>}
                 </td>
                 <td className="px-4 py-3">{new Date(j.updated_at).toLocaleDateString()}</td>

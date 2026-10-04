@@ -31,3 +31,10 @@ secret = "env(TURNSTILE_SECRET)"
 
 [functions.send-test-email]
 verify_jwt = true
+
+# Public endpoint called by the job board; validates input itself and uses the service role.
+[functions.submit-application]
+verify_jwt = false
+
+[functions.resend-application]
+verify_jwt = true

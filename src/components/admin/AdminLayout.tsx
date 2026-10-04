@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -19,9 +19,26 @@ export function AdminLayout({
       </Helmet>
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link to="/admin" className="text-lg font-semibold">
-            Medbridge Admin
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link to="/admin" className="text-lg font-semibold">
+              Medbridge Admin
+            </Link>
+            <nav aria-label="Main" className="flex gap-4 text-sm">
+              {[
+                { to: "/admin", label: "Jobs", end: true },
+                { to: "/admin/applications", label: "Applications", end: false },
+              ].map((l) => (
+                <NavLink
+                  key={l.to}
+                  to={l.to}
+                  end={l.end}
+                  className={({ isActive }) => (isActive ? "font-medium" : "text-muted-foreground hover:text-foreground")}
+                >
+                  {l.label}
+                </NavLink>
+              ))}
+            </nav>
+          </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-muted-foreground sm:inline">{email}</span>
             <Button variant="outline" size="sm" onClick={onSignOut}>

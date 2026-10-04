@@ -42,3 +42,22 @@ export type JobOverview = {
   application_count: number;
   failed_count: number;
 };
+
+export type EmailStatus = "sent" | "failed";
+
+export type Application = {
+  id: string;
+  job_id: string | null;
+  job_title: string;
+  applicant_name: string;
+  applicant_email: string;
+  submitted_at: string;
+  email_status: EmailStatus;
+  phone: string | null;
+  cover_letter: string | null;
+  answers: Record<string, string>;
+  resume_path: string | null;
+  email_error: string | null;
+  confirmation_sent: boolean;
+  payload_stored: boolean;
+};
