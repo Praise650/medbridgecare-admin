@@ -6,8 +6,9 @@ import { buildApplicationEmail, oneLine, type Question } from "../_shared/applic
 // Public endpoint (verify_jwt = false). Called by the public job board with multipart/form-data:
 //   jobId, name, email, phone?, coverLetter?, answers (JSON {questionId: value}), resume? (file), website (honeypot)
 
-const publicOrigin = Deno.env.get("PUBLIC_SITE_ORIGIN");
-if (!publicOrigin) console.warn("PUBLIC_SITE_ORIGIN is not set: browser calls will be blocked by CORS");
+// Comma-separated list, e.g. "https://example.com,https://www.example.com"
+const publicOrigins = (Deno.env.get("PUBLIC_SITE_ORIGIN") ?? "").split(",").map((o) => o.trim()).filter(Boolean);
+if (!publicOrigins.length) console.warn("PUBLIC_SITE_ORIGIN is not set: browser calls will be blocked by CORS");
 
 // Stores answers + CV unless explicitly "false". Counts/status are always recorded.
 const STORE_PAYLOAD = Deno.env.get("STORE_APPLICATIONS") !== "false";
@@ -23,7 +24,7 @@ const RESUME_TYPES: Record<string, string> = {
 const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const cors = {
-  "Access-Control-Allow-Origin": publicOrigin ?? "",
+  "Access-Control-Allow-Origin": publicOrigins[0] ?? "",
   "Vary": "Origin",
   "Access-Control-Allow-Headers": "content-type, apikey, authorization, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -58,7 +59,15 @@ function validateAnswers(questions: Question[], raw: unknown): { answers: Record
   return { answers };
 }
 
+// Echo back the caller's origin when it is on the allow-list (per response, so concurrent requests can't mix).
 Deno.serve(async (req) => {
+  const res = await handle(req);
+  const origin = req.headers.get("origin");
+  if (origin && publicOrigins.includes(origin)) res.headers.set("Access-Control-Allow-Origin", origin);
+  return res;
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
@@ -101,14 +110,18 @@ Deno.serve(async (req) => {
   // Service role: bypasses RLS. Only ever used after the validation above.
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const { data: job } = await admin
+  const { data: job, error: jobErr } = await admin
     .from("jobs")
     .select("id, title, application_email, custom_questions, status, closing_date")
     .eq("id", jobId)
     .maybeSingle();
+  if (jobErr) {
+    console.error("job lookup failed", jobErr);
+    return json({ error: "Could not submit your application. Please try again." }, 500);
+  }
   const today = new Date().toISOString().slice(0, 10);
   if (!job || job.status !== "open" || (job.closing_date && job.closing_date < today)) {
-    return json({ error: "This position is no longer accepting applications" }, 404);
+    return json({ error: "This position is no longer accepting applications", code: "job_closed" }, 404);
   }
 
   const { answers, error: answerErr } = validateAnswers(job.custom_questions as Question[], rawAnswers);
@@ -212,4 +225,4 @@ Deno.serve(async (req) => {
   // The applicant sees success whenever the application is stored. HR can retry failed emails.
   if (!emailed && !STORE_PAYLOAD) return json({ error: "Could not submit your application. Please try again." }, 502);
   return json({ ok: true });
-});
+}
