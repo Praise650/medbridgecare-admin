@@ -1,5 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { sendEmail, escapeHtml } from "../_shared/email.ts";
+import { sendEmail } from "../_shared/email.ts";
+import { buildApplicationEmail } from "../_shared/application-email.ts";
 
 const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN");
 if (!allowedOrigin) console.warn("ALLOWED_ORIGIN is not set: browser calls will be blocked by CORS");
@@ -52,18 +53,24 @@ Deno.serve(async (req) => {
   if (auditErr) { console.error(auditErr); return json({ error: "Audit log unavailable" }, 500); }
 
   const to = job.application_email || Deno.env.get("DEFAULT_APPLICATION_EMAIL")!;
-  const title = escapeHtml(job.title);
+  const sample = buildApplicationEmail({
+    jobTitle: job.title,
+    name: "Jane Doe",
+    email: "jane@example.com",
+    phone: "+1 555 010 0199",
+    coverLetter: "This is a sample cover letter used to preview how applications will look in your inbox.",
+    answers: {},
+    questions: [],
+    hasResume: false,
+    test: true,
+  });
 
   try {
     await sendEmail({
       to,
       subject: `[TEST] New application: ${job.title} – Jane Doe`,
       text: `This is a test application for "${job.title}". If you received this, delivery works.`,
-      html: `<p>This is a <strong>test</strong> application for <strong>${title}</strong>.</p>
-             <table border="1" cellpadding="6" style="border-collapse:collapse">
-               <tr><th align="left">Name</th><td>Jane Doe</td></tr>
-               <tr><th align="left">Email</th><td>jane@example.com</td></tr>
-             </table>`,
+      html: sample.html,
       replyTo: "jane@example.com",
     });
     return json({ ok: true, sentTo: to });

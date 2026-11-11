@@ -31,6 +31,7 @@ npm-debug.log*
 
 admin-supabase-plan.md
 applications-logic-plan.md
+supabase-keepalive-handover.md
 SETUP.md
 
 PROJECT_OVERVIEW.md
